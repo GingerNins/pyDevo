@@ -264,19 +264,42 @@ class Batch(object):
         pass
 
     def setstandards(self):
+        '''
+        Handles the Standard Calibrators from the data
+        TODO: Not yet implemented
+        Might use the data for over time analysis and store it elsewhere
+        '''
         pass
 
     def setlot(self, lot):
+        '''
+        Lot number determines what values the QCs are validated against
+        TODO: Not yet implemented
+        Need to determine where I will store information for each QC lot
+        '''
         self.lot = lot
 
     def sethighestvalue(self):
+        '''
+        Returns the highest concentration of p24 in fg/ml
+        Value is used to upated reported result for samples above the ULOQ
+        '''
         return self.data['Concentration (fg/ml)'].max()
 
     def setplates(self):
+        '''
+        Parses out each plate found in the Batch and creates a Plate object
+        passing to it the batch name, plate number and all data associated
+        with that plate
+        TODO: Should I just pass in the Batch and store it with it?
+        '''
         return [Plate(self.name, plate_num, self.data[self.data['Plate'] == plate_num])
                 for plate_num in self.data['Plate'].unique()]
 
     def __str__(self):
+        '''
+        TODO: Work in progress, changes as needed
+        '''
         return f'Name: {self.name}\nData: {self.data}'
 
 
@@ -297,6 +320,14 @@ class Plate(object):
     '''
 
     def __init__(self, batch, plate_num, data):
+        '''
+        Constructs a single Plate from a Simoa Batch.  Extracts specific information
+        about the plate based on information from the Batch Name.
+
+        TODO: Might create templates for how a plate could be set up
+        This would make it more automated as far as handling data instead
+        of trying to figure it out each time.  How would I store a template?
+        '''
         #         self.condition = condition
         #         self.timepoint = timepoint
         #         self.experiment = experiment
