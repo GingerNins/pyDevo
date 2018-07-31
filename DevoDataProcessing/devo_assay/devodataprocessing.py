@@ -9,6 +9,8 @@ from functools import reduce
 import pandas as pd
 import pyexcel
 from pyexcel.exceptions import FileTypeNotSupported
+from platetemplates import template01
+from platetemplates import template02
 
 
 def getrawdata(filename, headerrows=5):
@@ -201,6 +203,15 @@ def extractbatches(data):
     '''
     For each batch name in the raw data, create a batch object
     with only the data associated with that batch name
+
+    Paramaters:
+    -----------
+    data - pandas dataframe containing cleaned-up raw data
+
+    Returns:
+    ----------
+    A list of Batch objects containing batch name and raw data associated
+    only with that batch
     '''
     return [Batch(batch_name, data[data['Batch Name'] == batch_name])
             for batch_name in data['Batch Name'].unique()]
@@ -240,6 +251,20 @@ class Batch(object):
     '''
 
     def __init__(self, name, data):
+        '''
+        Constructs a Batch object setting name and raw data.  From the raw data,
+        QC data, Standards data and highest Concentration in fg/ml are determined.
+
+        A list of plates and corresponding raw data for each plate are also
+        extracted and stored in the Batch object.
+
+        TODO: The lot and date for the batch are also determined.
+
+        Parameters:
+        ----------
+        name - batch name associated with the data
+        data - pandas dataframe containing all raw data associated with batch name
+        '''
         self.name = name
         self.data = data
         self.lot = None
@@ -323,16 +348,53 @@ class Plate(object):
         '''
         Constructs a single Plate from a Simoa Batch.  Extracts specific information
         about the plate based on information from the Batch Name.
-
-        TODO: Might create templates for how a plate could be set up
-        This would make it more automated as far as handling data instead
-        of trying to figure it out each time.  How would I store a template?
         '''
-        #         self.condition = condition
-        #         self.timepoint = timepoint
-        #         self.experiment = experiment
+        self.condition = None
+        self.timepoint = None
+        self.experiment = None
+        self.template = None
         self.batch = batch
         self.plate_num = plate_num
+        self.data = data
+
+    def applytemplate(self, dilutions, feeders, replicates):
+        '''
+        Uses a template to apply the appropriate dilution,
+        feeder and replicate to each row of the data
+
+        Parameters:
+        ----------
+        data - pandas dataframe with one plate-worth of data
+        dilutions - a dictionary in the following format:
+            {'Axis': 'Row' or 'Column', ...}
+            Remainder of dictionary lists which rows/columns correspond to a specific dilution
+        feeders - a dictionary in the following format:
+            {'Axis': 'Row' or 'Column', ...}
+            Remainder of dictionary lists which rows/columns correspond to a specific feeder
+        replicates -a dictionary in the following format:
+            {'Axis': 'Row' or 'Column', ...}
+            Remainder of dictionary lists which rows/columns correspond to a specific replicate
+
+        Returns:
+        ----------
+        pandas data frame containing the updated plate data containing the assigned dilutions,
+        feeders, and replicates
+        '''
+        # Copy data to prevent SetWithCopyWarning
+        data = self.data.copy()
+
+        # Assign Dilutions
+        data['Dilution'] = data[dilutions['Axis']].apply(
+            lambda x: dilutions[x] if x in list(dilutions.keys())[1:] else None)
+
+        # Assign Feeders
+        data['Feeders'] = data[feeders['Axis']].apply(
+            lambda x: feeders[x] if x in list(feeders.keys())[1:] else None)
+
+        # Assign Replicates
+        data['Replicate'] = data[replicates['Axis']].apply(
+            lambda x: replicates[x] if x in list(replicates.keys())[1:] else None)
+
         self.data = data
 
     def __str__(self):
@@ -356,3 +418,4 @@ if __name__ == '__main__':
         calculateconcentrationinfg]
     df_data = reduce(call, funcs, df_data)
     batches = extractbatches(df_data)
+    print(batches[0].plates[0].applytemplate(template01)['Dilution'])

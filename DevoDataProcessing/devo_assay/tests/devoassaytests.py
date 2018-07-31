@@ -7,6 +7,8 @@ import unittest
 import devodataprocessing as devo
 import pandas as pd
 import numpy as np
+from platetemplates import generictemplate
+import enum
 
 
 class Test(unittest.TestCase):
@@ -123,6 +125,33 @@ class Test(unittest.TestCase):
             df_actual_output,
             df_expected_output,
             "Dataframe did not update properly when converting Concentration to fg/ml")
+
+    def testPlateTemplate(self):
+        df_input = pd.DataFrame()
+        df_input['Column'] = pd.Series([], dtype=object)
+
+        rows = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']
+        for row in rows:
+            for col in range(1, 13):
+                df_input = df_input.append(
+                    {'Row': row, 'Column': col}, ignore_index=True)
+
+        feeders = {'Axis': 'Column',
+                   **dict.fromkeys([1, 2, 3, 4, 5, 6], 'FeederOne'),
+                   **dict.fromkeys([7, 8, 9, 10, 11, 12], 'FeederTwo')}
+
+        replicates = {'Axis': 'Column'}
+        for x in range(1, 7):
+            replicates[int(x)] = int(x)
+            replicates[int(x) + 6] = int(x)
+
+        dilutions = {'Axis': 'Row',
+                     **dict.fromkeys(['A', 'E'], 0.5),
+                     **dict.fromkeys(['B', 'F'], 0.1),
+                     **dict.fromkeys(['C', 'G'], 0.05),
+                     **dict.fromkeys(['D', 'H'], 0.025)}
+
+        print(generictemplate(df_input, dilutions, feeders, replicates))
 
 
 if __name__ == "__main__":
